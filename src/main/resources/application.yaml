@@ -1,11 +1,56 @@
 # Spring Application Configuration
 spring:
   application:
-    name: military-api
-
+    name: military-transport-api
+  
   # Database Configuration
   datasource:
     url: jdbc:postgresql://localhost:5432/military_db
     username: military_user
     password: military_pass
     driver-class-name: org.postgresql.Driver
+  
+  # SQL Initialization (тестові дані)
+  # mode: always - завжди виконує data.sql
+  # mode: never - ніколи не виконує (для продакшену)
+  # mode: embedded - тільки для H2/HSQL
+  sql:
+    init:
+      mode: never
+      continue-on-error: true
+  
+  # JPA Configuration
+  jpa:
+    hibernate:
+      ddl-auto: update
+    defer-datasource-initialization: true
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+    open-in-view: false
+
+# SpringDoc OpenAPI Configuration
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+
+# Logging Configuration
+logging:
+  level:
+    ua.edu.viti.military: DEBUG
+    org.springframework.web: INFO
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+
+# Server Configuration
+server:
+  port: 8080
+  error:
+    include-message: always
+    include-binding-errors: always
