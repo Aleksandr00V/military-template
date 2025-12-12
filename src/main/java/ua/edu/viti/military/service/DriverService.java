@@ -2,6 +2,9 @@ package ua.edu.viti.military.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ua.edu.viti.military.dto.request.DriverCreateDTO;
@@ -9,11 +12,11 @@ import ua.edu.viti.military.dto.response.DriverResponseDTO;
 import ua.edu.viti.military.entity.Driver;
 import ua.edu.viti.military.exception.DuplicateResourceException;
 import ua.edu.viti.military.exception.ResourceNotFoundException;
+import ua.edu.viti.military.mapper.DriverMapper;
 import ua.edu.viti.military.repository.DriverRepository;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -22,9 +25,16 @@ import java.util.stream.Collectors;
 public class DriverService {
 
     private final DriverRepository driverRepository;
+    private final DriverMapper driverMapper;
 
-    // CREATE
+    /**
+     * При створенні - очистити кеш списків
+     */
     @Transactional
+    @Caching(evict = {
+        @CacheEvict(value = "drivers", key = "'all'"),
+        @CacheEvict(value = "drivers", key = "'active'")
+    })
     public DriverResponseDTO create(DriverCreateDTO dto) {
         log.info("Створення нового водія: {}", dto.getMilitaryId());
 
@@ -33,113 +43,92 @@ public class DriverService {
             throw new DuplicateResourceException("Водій з військовим ID " + dto.getMilitaryId() + " вже існує");
         }
 
-        // Створення Entity
-        Driver driver = new Driver();
-        driver.setMilitaryId(dto.getMilitaryId());
-        driver.setFirstName(dto.getFirstName());
-        driver.setLastName(dto.getLastName());
-        driver.setMiddleName(dto.getMiddleName());
-        driver.setRank(dto.getRank());
-        driver.setLicenseNumber(dto.getLicenseNumber());
-        driver.setLicenseCategories(dto.getLicenseCategories());
-        driver.setLicenseExpiryDate(dto.getLicenseExpiryDate());
-        driver.setPhoneNumber(dto.getPhoneNumber());
-        driver.setIsActive(dto.getIsActive() != null ? dto.getIsActive() : true);
+        // Створення Entity через MapStruct
+        Driver driver = driverMapper.toEntity(dto);
+        
+        // Встановити значення за замовчуванням якщо не вказано
+        if (driver.getIsActive() == null) {
+            driver.setIsActive(true);
+        }
 
         // Збереження
         Driver saved = driverRepository.save(driver);
         log.info("Водія створено з ID: {}", saved.getId());
 
-        return toResponseDTO(saved);
+        return driverMapper.toResponseDTO(saved);
     }
 
-    // READ by ID
+    /**
+     * Кешування по ID
+     */
+    @Cacheable(value = "drivers", key = "#id")
     public DriverResponseDTO getById(Long id) {
-        log.debug("Пошук водія з ID: {}", id);
+        log.info("Fetching driver from DATABASE: id={}", id);
 
         Driver driver = driverRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Водія з ID " + id + " не знайдено"));
 
-        return toResponseDTO(driver);
+        return driverMapper.toResponseDTO(driver);
     }
 
-    // READ all
+    /**
+     * Кешування списку всіх водіїв
+     */
+    @Cacheable(value = "drivers", key = "'all'")
     public List<DriverResponseDTO> getAll() {
-        log.debug("Отримання всіх водіїв");
+        log.info("Fetching ALL drivers from DATABASE");
 
-        return driverRepository.findAll()
-                .stream()
-                .map(this::toResponseDTO)
-                .collect(Collectors.toList());
+        return driverMapper.toResponseDTOList(driverRepository.findAll());
     }
 
-    // READ active drivers
+    /**
+     * Кешування списку активних водіїв
+     */
+    @Cacheable(value = "drivers", key = "'active'")
     public List<DriverResponseDTO> getActiveDrivers() {
-        log.debug("Отримання активних водіїв");
+        log.info("Fetching ACTIVE drivers from DATABASE");
 
-        return driverRepository.findByIsActive(true)
-                .stream()
-                .map(this::toResponseDTO)
-                .collect(Collectors.toList());
+        return driverMapper.toResponseDTOList(driverRepository.findByIsActive(true));
     }
 
-    // READ drivers with expiring license
+    // Не кешуємо - результат залежить від поточної дати
     public List<DriverResponseDTO> getDriversWithExpiringLicense(int daysUntilExpiry) {
         log.debug("Пошук водіїв з правами що закінчуються через {} днів", daysUntilExpiry);
 
         LocalDate expiryDate = LocalDate.now().plusDays(daysUntilExpiry);
 
-        return driverRepository.findByLicenseExpiryDateBefore(expiryDate)
-                .stream()
-                .map(this::toResponseDTO)
-                .collect(Collectors.toList());
+        return driverMapper.toResponseDTOList(driverRepository.findByLicenseExpiryDateBefore(expiryDate));
     }
 
-    // UPDATE
+    /**
+     * При оновленні - очистити кеш водія та списків
+     */
     @Transactional
+    @Caching(evict = {
+        @CacheEvict(value = "drivers", key = "#id"),
+        @CacheEvict(value = "drivers", key = "'all'"),
+        @CacheEvict(value = "drivers", key = "'active'")
+    })
     public DriverResponseDTO update(Long id, DriverCreateDTO dto) {
         log.info("Оновлення водія з ID: {}", id);
 
         Driver driver = driverRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Водія з ID " + id + " не знайдено"));
 
-        // Оновлення полів
-        if (dto.getFirstName() != null) {
-            driver.setFirstName(dto.getFirstName());
-        }
-        if (dto.getLastName() != null) {
-            driver.setLastName(dto.getLastName());
-        }
-        if (dto.getMiddleName() != null) {
-            driver.setMiddleName(dto.getMiddleName());
-        }
-        if (dto.getRank() != null) {
-            driver.setRank(dto.getRank());
-        }
-        if (dto.getLicenseNumber() != null) {
-            driver.setLicenseNumber(dto.getLicenseNumber());
-        }
-        if (dto.getLicenseCategories() != null) {
-            driver.setLicenseCategories(dto.getLicenseCategories());
-        }
-        if (dto.getLicenseExpiryDate() != null) {
-            driver.setLicenseExpiryDate(dto.getLicenseExpiryDate());
-        }
-        if (dto.getPhoneNumber() != null) {
-            driver.setPhoneNumber(dto.getPhoneNumber());
-        }
-        if (dto.getIsActive() != null) {
-            driver.setIsActive(dto.getIsActive());
-        }
+        // Оновлення полів через MapStruct (тільки non-null поля)
+        driverMapper.updateEntityFromDTO(dto, driver);
 
         Driver updated = driverRepository.save(driver);
         log.info("Водія з ID {} оновлено", id);
 
-        return toResponseDTO(updated);
+        return driverMapper.toResponseDTO(updated);
     }
 
-    // DELETE
+    /**
+     * При видаленні - очистити весь кеш водіїв
+     */
     @Transactional
+    @CacheEvict(value = "drivers", allEntries = true)
     public void delete(Long id) {
         log.info("Видалення водія з ID: {}", id);
 
@@ -149,24 +138,5 @@ public class DriverService {
 
         driverRepository.deleteById(id);
         log.info("Водія з ID {} видалено", id);
-    }
-
-    // Маппінг Entity -> DTO
-    private DriverResponseDTO toResponseDTO(Driver entity) {
-        DriverResponseDTO dto = new DriverResponseDTO();
-        dto.setId(entity.getId());
-        dto.setMilitaryId(entity.getMilitaryId());
-        dto.setFirstName(entity.getFirstName());
-        dto.setLastName(entity.getLastName());
-        dto.setMiddleName(entity.getMiddleName());
-        dto.setRank(entity.getRank());
-        dto.setLicenseNumber(entity.getLicenseNumber());
-        dto.setLicenseCategories(entity.getLicenseCategories());
-        dto.setLicenseExpiryDate(entity.getLicenseExpiryDate());
-        dto.setPhoneNumber(entity.getPhoneNumber());
-        dto.setIsActive(entity.getIsActive());
-        dto.setCreatedAt(entity.getCreatedAt());
-        dto.setUpdatedAt(entity.getUpdatedAt());
-        return dto;
     }
 }

@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <changeSet id="006-add-indexes" author="student">
+        <comment>Додавання індексів для покращення продуктивності</comment>
+        
+        <!-- ===== VEHICLES INDEXES ===== -->
+        
+        <!-- Індекс для пошуку по статусу -->
+        <createIndex indexName="idx_vehicles_status" tableName="vehicles">
+            <column name="status"/>
+        </createIndex>
+        
+        <!-- Індекс для пошуку по категорії -->
+        <createIndex indexName="idx_vehicles_category" tableName="vehicles">
+            <column name="category_id"/>
+        </createIndex>
+        
+        <!-- Індекс для пошуку по водію -->
+        <createIndex indexName="idx_vehicles_driver" tableName="vehicles">
+            <column name="driver_id"/>
+        </createIndex>
+        
+        <!-- Індекс для пошуку по типу палива -->
+        <createIndex indexName="idx_vehicles_fuel_type" tableName="vehicles">
+            <column name="fuel_type"/>
+        </createIndex>
+        
+        <!-- Композитний індекс для частих запитів -->
+        <createIndex indexName="idx_vehicles_status_category" tableName="vehicles">
+            <column name="status"/>
+            <column name="category_id"/>
+        </createIndex>
+        
+        <!-- ===== DRIVERS INDEXES ===== -->
+        
+        <!-- Індекс для пошуку активних водіїв -->
+        <createIndex indexName="idx_drivers_is_active" tableName="drivers">
+            <column name="is_active"/>
+        </createIndex>
+        
+        <!-- Індекс для пошуку по терміну дії ліцензії -->
+        <createIndex indexName="idx_drivers_license_expiry" tableName="drivers">
+            <column name="license_expiry_date"/>
+        </createIndex>
+        
+        <!-- ===== VEHICLE_ASSIGNMENTS INDEXES ===== -->
+        
+        <!-- Індекс для пошуку по транспорту -->
+        <createIndex indexName="idx_assignments_vehicle" tableName="vehicle_assignments">
+            <column name="vehicle_id"/>
+        </createIndex>
+        
+        <!-- Індекс для пошуку по водію -->
+        <createIndex indexName="idx_assignments_driver" tableName="vehicle_assignments">
+            <column name="driver_id"/>
+        </createIndex>
+        
+        <!-- Індекс для пошуку по типу операції -->
+        <createIndex indexName="idx_assignments_type" tableName="vehicle_assignments">
+            <column name="type"/>
+        </createIndex>
+        
+        <!-- Індекс для пошуку по даті (новіші спочатку) -->
+        <createIndex indexName="idx_assignments_date" tableName="vehicle_assignments">
+            <column name="performed_at" descending="true"/>
+        </createIndex>
+        
+        <!-- ===== USERS INDEXES ===== -->
+        
+        <!-- Індекс для швидкого пошуку по email -->
+        <createIndex indexName="idx_users_email" tableName="users">
+            <column name="email"/>
+        </createIndex>
+        
+        <rollback>
+            <!-- Vehicles indexes -->
+            <dropIndex indexName="idx_vehicles_status" tableName="vehicles"/>
+            <dropIndex indexName="idx_vehicles_category" tableName="vehicles"/>
+            <dropIndex indexName="idx_vehicles_driver" tableName="vehicles"/>
+            <dropIndex indexName="idx_vehicles_fuel_type" tableName="vehicles"/>
+            <dropIndex indexName="idx_vehicles_status_category" tableName="vehicles"/>
+            
+            <!-- Drivers indexes -->
+            <dropIndex indexName="idx_drivers_is_active" tableName="drivers"/>
+            <dropIndex indexName="idx_drivers_license_expiry" tableName="drivers"/>
+            
+            <!-- Assignments indexes -->
+            <dropIndex indexName="idx_assignments_vehicle" tableName="vehicle_assignments"/>
+            <dropIndex indexName="idx_assignments_driver" tableName="vehicle_assignments"/>
+            <dropIndex indexName="idx_assignments_type" tableName="vehicle_assignments"/>
+            <dropIndex indexName="idx_assignments_date" tableName="vehicle_assignments"/>
+            
+            <!-- Users indexes -->
+            <dropIndex indexName="idx_users_email" tableName="users"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <changeSet id="002-create-drivers" author="student">
+        <comment>Створення таблиці водіїв</comment>
+        
+        <createTable tableName="drivers">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            
+            <column name="military_id" type="VARCHAR(50)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            
+            <column name="first_name" type="VARCHAR(50)">
+                <constraints nullable="true"/>
+            </column>
+            
+            <column name="last_name" type="VARCHAR(50)">
+                <constraints nullable="true"/>
+            </column>
+            
+            <column name="middle_name" type="VARCHAR(50)">
+                <constraints nullable="true"/>
+            </column>
+            
+            <column name="rank" type="VARCHAR(50)">
+                <constraints nullable="true"/>
+            </column>
+            
+            <column name="license_number" type="VARCHAR(50)">
+                <constraints nullable="true" unique="true"/>
+            </column>
+            
+            <column name="license_categories" type="VARCHAR(50)">
+                <constraints nullable="true"/>
+            </column>
+            
+            <column name="license_expiry_date" type="DATE">
+                <constraints nullable="true"/>
+            </column>
+            
+            <column name="phone_number" type="VARCHAR(20)">
+                <constraints nullable="true"/>
+            </column>
+            
+            <column name="is_active" type="BOOLEAN" defaultValueBoolean="true">
+                <constraints nullable="true"/>
+            </column>
+            
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            
+            <column name="updated_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        
+        <rollback>
+            <dropTable tableName="drivers"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

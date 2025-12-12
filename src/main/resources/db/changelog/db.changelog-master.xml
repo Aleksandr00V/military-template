@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <!-- ===== 1. СТВОРЕННЯ СХЕМИ ===== -->
+    
+    <!-- Категорії транспорту -->
+    <include file="db/changelog/changes/001-create-vehicle-categories.xml"/>
+    
+    <!-- Водії -->
+    <include file="db/changelog/changes/002-create-drivers.xml"/>
+    
+    <!-- Транспортні засоби -->
+    <include file="db/changelog/changes/003-create-vehicles.xml"/>
+    
+    <!-- Журнал операцій (Stage 2) -->
+    <include file="db/changelog/changes/004-create-vehicle-assignments.xml"/>
+    
+    <!-- Користувачі та ролі (Stage 2 - Security) -->
+    <include file="db/changelog/changes/005-create-users-roles.xml"/>
+    
+    <!-- Індекси для продуктивності -->
+    <include file="db/changelog/changes/006-add-indexes.xml"/>
+    
+    <!-- ===== 2. SEED DATA ===== -->
+    
+    <!-- Початкові категорії транспорту -->
+    <include file="db/changelog/data/seed-vehicle-categories.xml"/>
+    
+    <!-- Тестові дані -->
+    <include file="db/changelog/data/seed-test-data.xml"/>
+
+</databaseChangeLog>

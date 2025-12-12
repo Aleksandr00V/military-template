@@ -2,11 +2,13 @@ package ua.edu.viti.military.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ua.edu.viti.military.dto.request.VehicleCreateDTO;
 import ua.edu.viti.military.dto.request.VehicleUpdateDTO;
-import ua.edu.viti.military.dto.response.VehicleCategoryResponseDTO;
 import ua.edu.viti.military.dto.response.VehicleResponseDTO;
 import ua.edu.viti.military.entity.Driver;
 import ua.edu.viti.military.entity.FuelType;
@@ -16,6 +18,7 @@ import ua.edu.viti.military.entity.VehicleStatus;
 import ua.edu.viti.military.exception.BusinessLogicException;
 import ua.edu.viti.military.exception.DuplicateResourceException;
 import ua.edu.viti.military.exception.ResourceNotFoundException;
+import ua.edu.viti.military.mapper.VehicleMapper;
 import ua.edu.viti.military.repository.DriverRepository;
 import ua.edu.viti.military.repository.VehicleCategoryRepository;
 import ua.edu.viti.military.repository.VehicleRepository;
@@ -32,9 +35,13 @@ public class VehicleService {
     private final VehicleRepository vehicleRepository;
     private final VehicleCategoryRepository categoryRepository;
     private final DriverRepository driverRepository;
+    private final VehicleMapper vehicleMapper;
 
-    // CREATE
+    /**
+     * При створенні - очистити кеш списку транспорту
+     */
     @Transactional
+    @CacheEvict(value = "vehicles", allEntries = true)
     public VehicleResponseDTO create(VehicleCreateDTO dto) {
         log.info("Створення нового транспорту: {}", dto.getRegistrationNumber());
 
@@ -59,43 +66,44 @@ public class VehicleService {
             }
         }
 
-        // Створення Entity
-        Vehicle vehicle = new Vehicle();
-        vehicle.setModel(dto.getModel());
-        vehicle.setRegistrationNumber(dto.getRegistrationNumber());
+        // Створення Entity через MapStruct
+        Vehicle vehicle = vehicleMapper.toEntity(dto);
+        
+        // Встановити поля що не мапляться автоматично
         vehicle.setCategory(category);
-        vehicle.setEngineNumber(dto.getEngineNumber());
-        vehicle.setChassisNumber(dto.getChassisNumber());
-        vehicle.setManufactureYear(dto.getManufactureYear());
-        vehicle.setMileage(dto.getMileage());
-        vehicle.setFuelType(dto.getFuelType());
-        vehicle.setFuelConsumption(dto.getFuelConsumption());
-        vehicle.setMaintenanceIntervalKm(dto.getMaintenanceIntervalKm());
-        vehicle.setLastMaintenanceDate(dto.getLastMaintenanceDate());
-        vehicle.setLastMaintenanceMileage(dto.getLastMaintenanceMileage() != null ? dto.getLastMaintenanceMileage() : 0);
         vehicle.setDriver(driver);
-        vehicle.setStatus(VehicleStatus.OPERATIONAL);
+        vehicle.setStatus(driver != null ? VehicleStatus.ACTIVE : VehicleStatus.IN_POOL);
+        if (vehicle.getLastMaintenanceMileage() == null) {
+            vehicle.setLastMaintenanceMileage(0);
+        }
 
         // Збереження
         Vehicle saved = vehicleRepository.save(vehicle);
         log.info("Транспорт створено з ID: {}", saved.getId());
 
-        return toResponseDTO(saved);
+        return vehicleMapper.toResponseDTO(saved);
     }
 
-    // READ by ID
+    /**
+     * Кешування по ID
+     */
+    @Cacheable(value = "vehicles", key = "#id")
     public VehicleResponseDTO getById(Long id) {
-        log.debug("Пошук транспорту з ID: {}", id);
+        log.info("Fetching vehicle from DATABASE: id={}", id);
 
         Vehicle vehicle = vehicleRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Транспорт з ID " + id + " не знайдено"));
 
-        return toResponseDTO(vehicle);
+        return vehicleMapper.toResponseDTO(vehicle);
     }
 
-    // READ all with filters
+    /**
+     * Кешування списку (без фільтрів)
+     * При наявності фільтрів - не кешуємо
+     */
+    @Cacheable(value = "vehicles", key = "'all'", condition = "#status == null and #categoryId == null")
     public List<VehicleResponseDTO> getAll(VehicleStatus status, Long categoryId) {
-        log.debug("Отримання транспорту. Статус: {}, Категорія: {}", status, categoryId);
+        log.info("Fetching vehicles from DATABASE. Status: {}, Category: {}", status, categoryId);
 
         List<Vehicle> vehicles;
 
@@ -112,68 +120,48 @@ public class VehicleService {
             vehicles = vehicleRepository.findAll();
         }
 
-        return vehicles.stream()
-                .map(this::toResponseDTO)
-                .collect(Collectors.toList());
+        return vehicleMapper.toResponseDTOList(vehicles);
     }
 
-    // READ vehicles requiring maintenance
+    // Не кешуємо - динамічний запит
     public List<VehicleResponseDTO> getVehiclesRequiringMaintenance() {
         log.debug("Пошук транспорту що потребує ТО");
 
-        return vehicleRepository.findVehiclesRequiringMaintenance()
-                .stream()
-                .map(this::toResponseDTO)
-                .collect(Collectors.toList());
+        return vehicleMapper.toResponseDTOList(vehicleRepository.findVehiclesRequiringMaintenance());
     }
 
-    // READ by fuel type
+    /**
+     * Кешування по типу палива
+     */
+    @Cacheable(value = "vehicles", key = "'fuelType::' + #fuelType.name()")
     public List<VehicleResponseDTO> getByFuelType(FuelType fuelType) {
-        log.debug("Пошук транспорту по типу палива: {}", fuelType);
+        log.info("Fetching vehicles by fuel type from DATABASE: {}", fuelType);
 
-        return vehicleRepository.findByFuelType(fuelType)
-                .stream()
-                .map(this::toResponseDTO)
-                .collect(Collectors.toList());
+        return vehicleMapper.toResponseDTOList(vehicleRepository.findByFuelType(fuelType));
     }
 
-    // READ by driver
+    // Не кешуємо - залежить від призначень
     public List<VehicleResponseDTO> getByDriver(Long driverId) {
         log.debug("Пошук транспорту по водію: {}", driverId);
 
-        return vehicleRepository.findByDriverId(driverId)
-                .stream()
-                .map(this::toResponseDTO)
-                .collect(Collectors.toList());
+        return vehicleMapper.toResponseDTOList(vehicleRepository.findByDriverId(driverId));
     }
 
-    // UPDATE
+    /**
+     * При оновленні - очистити весь кеш транспорту
+     */
     @Transactional
+    @CacheEvict(value = "vehicles", allEntries = true)
     public VehicleResponseDTO update(Long id, VehicleUpdateDTO dto) {
         log.info("Оновлення транспорту з ID: {}", id);
 
         Vehicle vehicle = vehicleRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Транспорт з ID " + id + " не знайдено"));
 
-        // Оновлення полів
-        if (dto.getModel() != null) {
-            vehicle.setModel(dto.getModel());
-        }
-        if (dto.getMileage() != null) {
-            vehicle.setMileage(dto.getMileage());
-        }
-        if (dto.getFuelConsumption() != null) {
-            vehicle.setFuelConsumption(dto.getFuelConsumption());
-        }
-        if (dto.getMaintenanceIntervalKm() != null) {
-            vehicle.setMaintenanceIntervalKm(dto.getMaintenanceIntervalKm());
-        }
-        if (dto.getLastMaintenanceDate() != null) {
-            vehicle.setLastMaintenanceDate(dto.getLastMaintenanceDate());
-        }
-        if (dto.getLastMaintenanceMileage() != null) {
-            vehicle.setLastMaintenanceMileage(dto.getLastMaintenanceMileage());
-        }
+        // Оновлення полів через MapStruct (тільки non-null поля)
+        vehicleMapper.updateEntityFromDTO(dto, vehicle);
+
+        // Окрема обробка водія (потрібна бізнес-логіка)
         if (dto.getDriverId() != null) {
             Driver driver = driverRepository.findById(dto.getDriverId())
                     .orElseThrow(() -> new ResourceNotFoundException("Водія не знайдено"));
@@ -184,25 +172,25 @@ public class VehicleService {
 
             vehicle.setDriver(driver);
         }
-        if (dto.getStatus() != null) {
-            vehicle.setStatus(dto.getStatus());
-        }
 
         Vehicle updated = vehicleRepository.save(vehicle);
         log.info("Транспорт з ID {} оновлено", id);
 
-        return toResponseDTO(updated);
+        return vehicleMapper.toResponseDTO(updated);
     }
 
-    // DELETE (soft delete - зміна статусу на WRITTEN_OFF)
+    /**
+     * При видаленні - очистити кеш
+     */
     @Transactional
+    @CacheEvict(value = "vehicles", allEntries = true)
     public void delete(Long id) {
         log.info("Списання транспорту з ID: {}", id);
 
         Vehicle vehicle = vehicleRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Транспорт з ID " + id + " не знайдено"));
 
-        vehicle.setStatus(VehicleStatus.WRITTEN_OFF);
+        vehicle.setStatus(VehicleStatus.DECOMMISSIONED);
         vehicle.setDriver(null); // Знімаємо водія зі списаної машини
 
         vehicleRepository.save(vehicle);
@@ -224,52 +212,5 @@ public class VehicleService {
                 );
             }
         }
-    }
-
-    // Маппінг Entity -> DTO
-    private VehicleResponseDTO toResponseDTO(Vehicle entity) {
-        VehicleResponseDTO dto = new VehicleResponseDTO();
-        dto.setId(entity.getId());
-        dto.setModel(entity.getModel());
-        dto.setRegistrationNumber(entity.getRegistrationNumber());
-
-        // Категорія
-        dto.setCategory(toCategoryDTO(entity.getCategory()));
-
-        dto.setEngineNumber(entity.getEngineNumber());
-        dto.setChassisNumber(entity.getChassisNumber());
-        dto.setManufactureYear(entity.getManufactureYear());
-        dto.setMileage(entity.getMileage());
-        dto.setFuelType(entity.getFuelType());
-        dto.setFuelConsumption(entity.getFuelConsumption());
-        dto.setMaintenanceIntervalKm(entity.getMaintenanceIntervalKm());
-        dto.setLastMaintenanceDate(entity.getLastMaintenanceDate());
-        dto.setLastMaintenanceMileage(entity.getLastMaintenanceMileage());
-
-        // Водій - тільки ID та ім'я
-        if (entity.getDriver() != null) {
-            dto.setDriverId(entity.getDriver().getId());
-            dto.setDriverName(entity.getDriver().getLastName() + " " + entity.getDriver().getFirstName());
-        }
-
-        dto.setStatus(entity.getStatus());
-        dto.setCreatedAt(entity.getCreatedAt());
-        dto.setUpdatedAt(entity.getUpdatedAt());
-
-        return dto;
-    }
-
-    // Маппінг Category -> CategoryDTO
-    private VehicleCategoryResponseDTO toCategoryDTO(VehicleCategory entity) {
-        VehicleCategoryResponseDTO dto = new VehicleCategoryResponseDTO();
-        dto.setId(entity.getId());
-        dto.setName(entity.getName());
-        dto.setCode(entity.getCode());
-        dto.setDescription(entity.getDescription());
-        dto.setRequiredLicense(entity.getRequiredLicense());
-        dto.setMaxLoadCapacity(entity.getMaxLoadCapacity());
-        dto.setCreatedAt(entity.getCreatedAt());
-        dto.setUpdatedAt(entity.getUpdatedAt());
-        return dto;
     }
 }

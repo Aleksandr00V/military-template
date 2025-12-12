@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <changeSet id="seed-001-vehicle-categories" author="student" context="dev">
+        <comment>Додавання початкових категорій транспорту</comment>
+        
+        <!-- Легкові автомобілі -->
+        <insert tableName="vehicle_categories">
+            <column name="name" value="Легкові автомобілі"/>
+            <column name="code" value="CAR"/>
+            <column name="description" value="Легкові автомобілі для перевезення особового складу"/>
+            <column name="required_license" value="B"/>
+            <column name="max_load_capacity" value="500"/>
+        </insert>
+        
+        <!-- Вантажні автомобілі -->
+        <insert tableName="vehicle_categories">
+            <column name="name" value="Вантажні автомобілі"/>
+            <column name="code" value="TRUCK"/>
+            <column name="description" value="Вантажні автомобілі для перевезення вантажів та матеріалів"/>
+            <column name="required_license" value="C"/>
+            <column name="max_load_capacity" value="10000"/>
+        </insert>
+        
+        <!-- Спеціальна техніка -->
+        <insert tableName="vehicle_categories">
+            <column name="name" value="Спеціальна техніка"/>
+            <column name="code" value="SPECIAL"/>
+            <column name="description" value="Спеціальна військова техніка"/>
+            <column name="required_license" value="CE"/>
+            <column name="max_load_capacity" value="25000"/>
+        </insert>
+        
+        <!-- Автобуси -->
+        <insert tableName="vehicle_categories">
+            <column name="name" value="Автобуси"/>
+            <column name="code" value="BUS"/>
+            <column name="description" value="Автобуси для перевезення особового складу"/>
+            <column name="required_license" value="D"/>
+            <column name="max_load_capacity" value="2000"/>
+        </insert>
+        
+        <!-- Бронетехніка -->
+        <insert tableName="vehicle_categories">
+            <column name="name" value="Бронетехніка"/>
+            <column name="code" value="ARMOR"/>
+            <column name="description" value="Бронетранспортери та інша бронетехніка"/>
+            <column name="required_license" value="CE"/>
+            <column name="max_load_capacity" value="15000"/>
+        </insert>
+        
+        <rollback>
+            <delete tableName="vehicle_categories">
+                <where>code IN ('CAR', 'TRUCK', 'SPECIAL', 'BUS', 'ARMOR')</where>
+            </delete>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

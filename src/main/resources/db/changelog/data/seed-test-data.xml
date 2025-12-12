@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <!-- ===== ТЕСТОВІ ВОДІЇ ===== -->
+    <changeSet id="seed-002-test-drivers" author="student" context="dev">
+        <comment>Додавання тестових водіїв</comment>
+        
+        <insert tableName="drivers">
+            <column name="military_id" value="МВ-001"/>
+            <column name="first_name" value="Іван"/>
+            <column name="last_name" value="Петренко"/>
+            <column name="middle_name" value="Васильович"/>
+            <column name="rank" value="Сержант"/>
+            <column name="license_number" value="АВС123456"/>
+            <column name="license_categories" value="B, C"/>
+            <column name="license_expiry_date" value="2026-12-31"/>
+            <column name="phone_number" value="+380501234567"/>
+            <column name="is_active" valueBoolean="true"/>
+        </insert>
+        
+        <insert tableName="drivers">
+            <column name="military_id" value="МВ-002"/>
+            <column name="first_name" value="Олексій"/>
+            <column name="last_name" value="Коваленко"/>
+            <column name="middle_name" value="Петрович"/>
+            <column name="rank" value="Старший сержант"/>
+            <column name="license_number" value="АВС789012"/>
+            <column name="license_categories" value="B, C, CE"/>
+            <column name="license_expiry_date" value="2027-06-15"/>
+            <column name="phone_number" value="+380502345678"/>
+            <column name="is_active" valueBoolean="true"/>
+        </insert>
+        
+        <insert tableName="drivers">
+            <column name="military_id" value="МВ-003"/>
+            <column name="first_name" value="Микола"/>
+            <column name="last_name" value="Шевченко"/>
+            <column name="middle_name" value="Олександрович"/>
+            <column name="rank" value="Молодший сержант"/>
+            <column name="license_number" value="АВС345678"/>
+            <column name="license_categories" value="B, C, D"/>
+            <column name="license_expiry_date" value="2025-03-20"/>
+            <column name="phone_number" value="+380503456789"/>
+            <column name="is_active" valueBoolean="true"/>
+        </insert>
+        
+        <rollback>
+            <delete tableName="drivers">
+                <where>military_id IN ('МВ-001', 'МВ-002', 'МВ-003')</where>
+            </delete>
+        </rollback>
+    </changeSet>
+    
+    <!-- ===== ТЕСТОВІ ТРАНСПОРТНІ ЗАСОБИ ===== -->
+    <changeSet id="seed-003-test-vehicles" author="student" context="dev">
+        <comment>Додавання тестових транспортних засобів</comment>
+        
+        <!-- Легковий автомобіль -->
+        <insert tableName="vehicles">
+            <column name="model" value="УАЗ-469"/>
+            <column name="registration_number" value="АА1234ВВ"/>
+            <column name="category_id" valueComputed="(SELECT id FROM vehicle_categories WHERE code = 'CAR')"/>
+            <column name="engine_number" value="УМЗ-417-001"/>
+            <column name="chassis_number" value="UAZ469-2024-001"/>
+            <column name="manufacture_year" value="2020"/>
+            <column name="mileage" value="45000"/>
+            <column name="fuel_type" value="PETROL"/>
+            <column name="fuel_consumption" value="13.5"/>
+            <column name="maintenance_interval_km" value="10000"/>
+            <column name="last_maintenance_date" value="2024-10-15"/>
+            <column name="last_maintenance_mileage" value="42000"/>
+            <column name="driver_id" valueComputed="(SELECT id FROM drivers WHERE military_id = 'МВ-001')"/>
+            <column name="status" value="ACTIVE"/>
+        </insert>
+        
+        <!-- Вантажівка -->
+        <insert tableName="vehicles">
+            <column name="model" value="КамАЗ-5320"/>
+            <column name="registration_number" value="АА5678ВВ"/>
+            <column name="category_id" valueComputed="(SELECT id FROM vehicle_categories WHERE code = 'TRUCK')"/>
+            <column name="engine_number" value="KAMAZ-740-001"/>
+            <column name="chassis_number" value="KAMAZ5320-2019-001"/>
+            <column name="manufacture_year" value="2019"/>
+            <column name="mileage" value="120000"/>
+            <column name="fuel_type" value="DIESEL"/>
+            <column name="fuel_consumption" value="28.0"/>
+            <column name="maintenance_interval_km" value="15000"/>
+            <column name="last_maintenance_date" value="2024-09-01"/>
+            <column name="last_maintenance_mileage" value="115000"/>
+            <column name="driver_id" valueComputed="(SELECT id FROM drivers WHERE military_id = 'МВ-002')"/>
+            <column name="status" value="ACTIVE"/>
+        </insert>
+        
+        <!-- Вантажівка на ТО -->
+        <insert tableName="vehicles">
+            <column name="model" value="КрАЗ-6322"/>
+            <column name="registration_number" value="АА9012ВВ"/>
+            <column name="category_id" valueComputed="(SELECT id FROM vehicle_categories WHERE code = 'TRUCK')"/>
+            <column name="engine_number" value="YMZ-238-001"/>
+            <column name="chassis_number" value="KRAZ6322-2018-001"/>
+            <column name="manufacture_year" value="2018"/>
+            <column name="mileage" value="185000"/>
+            <column name="fuel_type" value="DIESEL"/>
+            <column name="fuel_consumption" value="35.0"/>
+            <column name="maintenance_interval_km" value="10000"/>
+            <column name="last_maintenance_date" value="2024-06-01"/>
+            <column name="last_maintenance_mileage" value="170000"/>
+            <column name="status" value="IN_MAINTENANCE"/>
+        </insert>
+        
+        <!-- Автобус -->
+        <insert tableName="vehicles">
+            <column name="model" value="ПАЗ-3205"/>
+            <column name="registration_number" value="АА3456ВВ"/>
+            <column name="category_id" valueComputed="(SELECT id FROM vehicle_categories WHERE code = 'BUS')"/>
+            <column name="engine_number" value="ZMZ-5234-001"/>
+            <column name="chassis_number" value="PAZ3205-2021-001"/>
+            <column name="manufacture_year" value="2021"/>
+            <column name="mileage" value="67000"/>
+            <column name="fuel_type" value="DIESEL"/>
+            <column name="fuel_consumption" value="22.0"/>
+            <column name="maintenance_interval_km" value="12000"/>
+            <column name="last_maintenance_date" value="2024-11-01"/>
+            <column name="last_maintenance_mileage" value="65000"/>
+            <column name="driver_id" valueComputed="(SELECT id FROM drivers WHERE military_id = 'МВ-003')"/>
+            <column name="status" value="ACTIVE"/>
+        </insert>
+        
+        <!-- Списаний транспорт -->
+        <insert tableName="vehicles">
+            <column name="model" value="ГАЗ-66"/>
+            <column name="registration_number" value="АА7890ВВ"/>
+            <column name="category_id" valueComputed="(SELECT id FROM vehicle_categories WHERE code = 'TRUCK')"/>
+            <column name="engine_number" value="ZMZ-66-001"/>
+            <column name="chassis_number" value="GAZ66-1995-001"/>
+            <column name="manufacture_year" value="1995"/>
+            <column name="mileage" value="350000"/>
+            <column name="fuel_type" value="PETROL"/>
+            <column name="fuel_consumption" value="24.0"/>
+            <column name="maintenance_interval_km" value="8000"/>
+            <column name="last_maintenance_date" value="2023-01-15"/>
+            <column name="last_maintenance_mileage" value="348000"/>
+            <column name="status" value="DECOMMISSIONED"/>
+        </insert>
+        
+        <rollback>
+            <delete tableName="vehicles">
+                <where>registration_number IN ('АА1234ВВ', 'АА5678ВВ', 'АА9012ВВ', 'АА3456ВВ', 'АА7890ВВ')</where>
+            </delete>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

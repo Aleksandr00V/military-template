@@ -1,8 +1,12 @@
 package ua.edu.viti.military.entity;
 
+/**
+ * Статуси транспортного засобу
+ */
 public enum VehicleStatus {
-    OPERATIONAL,      // Справний
-    IN_MAINTENANCE,   // На ТО
+    ACTIVE,           // Активний (з призначеним водієм)
+    IN_POOL,          // В резерві (без водія, готовий до призначення)
+    IN_MAINTENANCE,   // На технічному обслуговуванні
     OUT_OF_SERVICE,   // Несправний
-    WRITTEN_OFF       // Списаний
+    DECOMMISSIONED    // Списаний
 }

@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <changeSet id="004-create-vehicle-assignments" author="student">
+        <comment>Створення журналу операцій з транспортом (призначення, ТО)</comment>
+        
+        <createTable tableName="vehicle_assignments">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            
+            <column name="vehicle_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            
+            <column name="driver_id" type="BIGINT">
+                <constraints nullable="true"/>
+            </column>
+            
+            <column name="type" type="VARCHAR(30)">
+                <constraints nullable="false"/>
+            </column>
+            
+            <column name="notes" type="VARCHAR(500)">
+                <constraints nullable="true"/>
+            </column>
+            
+            <column name="performed_by" type="VARCHAR(100)">
+                <constraints nullable="true"/>
+            </column>
+            
+            <column name="performed_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            
+            <column name="version" type="BIGINT" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        
+        <!-- Foreign Key до транспорту -->
+        <addForeignKeyConstraint 
+            baseTableName="vehicle_assignments"
+            baseColumnNames="vehicle_id"
+            referencedTableName="vehicles"
+            referencedColumnNames="id"
+            constraintName="fk_assignments_vehicle"
+            onDelete="RESTRICT"/>
+        
+        <!-- Foreign Key до водія -->
+        <addForeignKeyConstraint 
+            baseTableName="vehicle_assignments"
+            baseColumnNames="driver_id"
+            referencedTableName="drivers"
+            referencedColumnNames="id"
+            constraintName="fk_assignments_driver"
+            onDelete="SET NULL"/>
+        
+        <rollback>
+            <dropForeignKeyConstraint 
+                baseTableName="vehicle_assignments"
+                constraintName="fk_assignments_vehicle"/>
+            <dropForeignKeyConstraint 
+                baseTableName="vehicle_assignments"
+                constraintName="fk_assignments_driver"/>
+            <dropTable tableName="vehicle_assignments"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

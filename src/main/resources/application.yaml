@@ -10,26 +10,40 @@ spring:
     password: military_pass
     driver-class-name: org.postgresql.Driver
   
-  # SQL Initialization (тестові дані)
-  # mode: always - завжди виконує data.sql
-  # mode: never - ніколи не виконує (для продакшену)
-  # mode: embedded - тільки для H2/HSQL
+  # SQL Initialization (вимкнено - використовуємо Liquibase)
   sql:
     init:
       mode: never
-      continue-on-error: true
   
   # JPA Configuration
   jpa:
     hibernate:
-      ddl-auto: update
-    defer-datasource-initialization: true
+      ddl-auto: none  # ВАЖЛИВО: Liquibase керує схемою БД!
     show-sql: true
     properties:
       hibernate:
         format_sql: true
         dialect: org.hibernate.dialect.PostgreSQLDialect
     open-in-view: false
+  
+  # Liquibase Configuration
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.xml
+    enabled: true
+    drop-first: false  # НЕ видаляти БД при старті!
+  
+  # Redis Configuration
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      timeout: 60000ms
+  
+  # Cache Configuration
+  cache:
+    type: redis
+    redis:
+      time-to-live: 3600000  # TTL = 1 година (мс)
 
 # SpringDoc OpenAPI Configuration
 springdoc:
@@ -54,3 +68,27 @@ server:
   error:
     include-message: always
     include-binding-errors: always
+
+# Actuator Configuration (для метрик)
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized
+    prometheus:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    tags:
+      application: ${spring.application.name}
+
+# JWT Configuration
+app:
+  jwt:
+    secret: VerySecretKeyThatShouldBeAtLeast256BitsLongForHS256AlgorithmSecurityMilitary2024
+    expiration-ms: 86400000  # 24 години
